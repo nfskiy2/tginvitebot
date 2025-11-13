@@ -1,5 +1,2 @@
-time="2025-11-13T12:41:39+07:00" level=warning msg="D:\\programming\\invitebot\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
-unable to get image 'invitebot-bot': error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.49/images/invitebot-bot/json": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
-
-D:\programming\invitebot>
+я хочу чтобы админ писал именно в личное сообщение боту а не в общий групповой чат, добавь проверку чтобы только админы могли получить эту информацию
 

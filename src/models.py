@@ -25,6 +25,7 @@ class InviteLink(Base):
     inviter_id = Column(Integer, ForeignKey("users.id"))
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True)
     used_at = Column(DateTime(timezone=True), nullable=True)
 
     inviter = relationship("User", back_populates="invite_links")
