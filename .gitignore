@@ -16,3 +16,6 @@ venv/
 
 # Docker
 data/
+
+# Others
+prompt.txt
