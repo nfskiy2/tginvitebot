@@ -68,34 +68,94 @@ async def send_info(message: types.Message):
 
 @dp.message(Command("invite"), F.chat.type == ChatType.PRIVATE)
 async def invite(message: types.Message):
-    """Handles the /invite command in a private chat."""
+    """Handles the /invite command in a private chat.
+    
+    Allows regular users to generate one link.
+    Allows admins to generate multiple links via `/invite <number>`.
+    """
     logging.info(f"Received /invite from user {message.from_user.id} ({message.from_user.username})")
+    
+    MAX_LINKS_PER_REQUEST = 20  # Set a reasonable limit
+
     if not CHAT_ID:
         logging.warning("CHAT_ID is not configured.")
         await message.reply("The bot is not configured with a target chat. Please contact the administrator.")
         return
 
+    # --- Check if user is a member of the group ---
     try:
-        logging.info(f"Checking membership for user {message.from_user.id} in chat {CHAT_ID}")
-        chat_member = await bot.get_chat_member(chat_id=CHAT_ID, user_id=message.from_user.id)
-        logging.info(f"User {message.from_user.id} has status: {chat_member.status}")
-        
-        if chat_member.status not in ["member", "administrator", "creator"]:
+        member = await bot.get_chat_member(chat_id=CHAT_ID, user_id=message.from_user.id)
+        if member.status not in ["member", "administrator", "creator"]:
             await message.reply("You must be a member of the group to create an invite link.")
-            logging.warning(f"User {message.from_user.id} is not a member of the group. Status: {chat_member.status}")
             return
-            
     except Exception as e:
         logging.error(f"Could not check chat member status: {e}", exc_info=True)
-        await message.reply("I couldn't verify if you are in the group. Make sure I have the correct permissions and am an administrator in the chat.")
+        await message.reply("I couldn't verify if you are in the group. Make sure I have the correct permissions.")
         return
 
-    logging.info(f"User {message.from_user.id} is a member. Proceeding to link generation.")
+    # --- Parse arguments ---
+    args = message.text.split()
+    num_to_generate = 1
+    is_mass_request = False
+
+    if len(args) > 1:
+        try:
+            num_to_generate = int(args[1])
+            is_mass_request = True
+        except ValueError:
+            await message.reply("Please provide a valid number of links to generate.")
+            return
+
+    # --- Handle mass generation for admins ---
+    if is_mass_request:
+        if member.status not in ["administrator", "creator"]:
+            await message.reply("Only administrators can generate multiple links at once.")
+            return
+        
+        if num_to_generate <= 0:
+            await message.reply("Please provide a positive number.")
+            return
+
+        if num_to_generate > MAX_LINKS_PER_REQUEST:
+            await message.reply(f"You can request a maximum of {MAX_LINKS_PER_REQUEST} links at a time. Generating {MAX_LINKS_PER_REQUEST} links.")
+            num_to_generate = MAX_LINKS_PER_REQUEST
+        
+        generated_links = []
+        with SessionLocal() as session:
+            inviter = get_or_create_user(session, message.from_user)
+            expires = datetime.utcnow() + timedelta(minutes=5)
+            
+            await message.reply(f"Generating {num_to_generate} links, please wait...")
+
+            for i in range(num_to_generate):
+                try:
+                    invite_link = await bot.create_chat_invite_link(
+                        chat_id=CHAT_ID,
+                        expire_date=expires,
+                        member_limit=1
+                    )
+                    new_link = InviteLink(
+                        link=invite_link.invite_link,
+                        inviter_id=inviter.id,
+                        expires_at=expires
+                    )
+                    session.add(new_link)
+                    generated_links.append(invite_link.invite_link)
+                except Exception as e:
+                    logging.error(f"Error creating one of the mass invite links: {e}")
+                    await message.reply(f"An error occurred after generating {i} links. Please try again.")
+                    return
+            
+            session.commit()
+
+        if generated_links:
+            response_text = "Here are your one-time invite links (valid for 5 minutes):\n\n" + "\n".join(generated_links)
+            await message.reply(response_text)
+        return
+
+    # --- Handle single link generation for regular users ---
     with SessionLocal() as session:
         inviter = get_or_create_user(session, message.from_user)
-        logging.info(f"Database user object: {inviter.id}")
-
-        # Check for existing active, unexpired links
         now = datetime.utcnow()
         active_link = session.query(InviteLink).filter(
             InviteLink.inviter_id == inviter.id,
@@ -105,15 +165,12 @@ async def invite(message: types.Message):
 
         if active_link:
             time_left = (active_link.expires_at - now).seconds
-            logging.info(f"User {message.from_user.id} already has an active link.")
             await message.reply(
                 f"You already have an active invite link. It will expire in {time_left // 60} minutes and {time_left % 60} seconds.\n"
                 f"{active_link.link}"
             )
             return
 
-        # Create a new invite link
-        logging.info(f"No active link found for user {message.from_user.id}. Creating a new one.")
         try:
             expires = datetime.utcnow() + timedelta(minutes=5)
             invite_link = await bot.create_chat_invite_link(
@@ -121,7 +178,6 @@ async def invite(message: types.Message):
                 expire_date=expires,
                 member_limit=1
             )
-
             new_link = InviteLink(
                 link=invite_link.invite_link,
                 inviter_id=inviter.id,
@@ -129,7 +185,6 @@ async def invite(message: types.Message):
             )
             session.add(new_link)
             session.commit()
-            logging.info(f"Successfully created and saved new link for user {message.from_user.id}")
             await message.reply(f"Here is your one-time invite link. It is valid for 5 minutes:\n{invite_link.invite_link}")
         except Exception as e:
             logging.error(f"Error creating invite link: {e}", exc_info=True)
