@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command, ChatMemberUpdatedFilter, MEMBER, KICKED
 from aiogram.enums.chat_type import ChatType
+from aiogram.enums.content_type import ContentType
 
 from sqlalchemy.orm import Session
 
@@ -292,6 +293,26 @@ async def on_new_chat_member(update: types.ChatMemberUpdated):
                     logging.info(f"User {invitee.username} joined using link from {inviter.username}")
                 else:
                     logging.warning(f"Invite link {link_str} not found in DB or is inactive.")
+
+
+# This handler will delete system messages about new/left members, etc.
+SERVICE_MESSAGE_TYPES = {
+    ContentType.NEW_CHAT_MEMBERS,
+    ContentType.LEFT_CHAT_MEMBER,
+    ContentType.NEW_CHAT_TITLE,
+    ContentType.NEW_CHAT_PHOTO,
+    ContentType.DELETE_CHAT_PHOTO,
+    ContentType.PINNED_MESSAGE,
+}
+
+@dp.message(F.content_type.in_(SERVICE_MESSAGE_TYPES))
+async def delete_service_messages(message: types.Message):
+    """Deletes service messages from the chat."""
+    try:
+        await message.delete()
+        logging.info(f"Deleted a service message of type {message.content_type}.")
+    except Exception as e:
+        logging.error(f"Could not delete service message: {e}")
 
 
 @dp.message(F.chat.type.in_({'group', 'supergroup'}))
