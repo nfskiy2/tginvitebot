@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from database import engine, SessionLocal
 from models import Base, User, InviteLink, InvitationLog
-from config import BOT_TOKEN, CHAT_ID
+from config import BOT_TOKEN, CHAT_ID, SOURCE_TOPIC_ID, DESTINATION_TOPIC_ID
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -292,6 +292,36 @@ async def on_new_chat_member(update: types.ChatMemberUpdated):
                     logging.info(f"User {invitee.username} joined using link from {inviter.username}")
                 else:
                     logging.warning(f"Invite link {link_str} not found in DB or is inactive.")
+
+
+@dp.message(F.chat.type.in_({'group', 'supergroup'}))
+async def topic_message_handler(message: types.Message):
+    """
+    Handles messages in topics.
+    Forwards messages from a source topic to a destination topic.
+    """
+    # Ensure all configs are set and the message is in the correct chat
+    if not all([CHAT_ID, SOURCE_TOPIC_ID, DESTINATION_TOPIC_ID]):
+        logging.warning("One or more required environment variables (CHAT_ID, SOURCE_TOPIC_ID, DESTINATION_TOPIC_ID) are missing. Aborting forward.")
+        return
+
+    if str(message.chat.id) != CHAT_ID:
+        logging.warning(f"Message from chat {message.chat.id} does not match configured CHAT_ID {CHAT_ID}. Aborting forward.")
+        return
+
+    # Check if the message is from a real user and in the source topic
+    if not message.from_user.is_bot and str(message.message_thread_id) == SOURCE_TOPIC_ID:
+        try:
+            await bot.forward_message(
+                chat_id=CHAT_ID,
+                from_chat_id=message.chat.id,
+                message_id=message.message_id,
+                message_thread_id=int(DESTINATION_TOPIC_ID)
+            )
+            logging.info(f"Successfully forwarded message {message.message_id} to topic {DESTINATION_TOPIC_ID}")
+        except Exception as e:
+            logging.error(f"Could not forward message: {e}", exc_info=True)
+
 
 
 async def main():

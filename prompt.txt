@@ -1,19 +1,12 @@
-t, annotated-types, aiohappyeyeballs, aiofiles, typing-inspection, sqlalchemy, pydantic-core, multidict, aiosignal, yarl, pydantic, aiohttp, aiogram
-Successfully installed aiofiles-24.1.0 aiogram-3.22.0 aiohappyeyeballs-2.6.1 aiohttp-3.12.15 aiosignal-1.4.0 annotated-types-0.7.0 async-timeout-5.0.1 attrs-25.4.0 certifi-2025.11.12 frozenlist-1.8.0 greenlet-3.2.4 idna-3.11 magic-filter-1.0.12 multidict-6.7.0 propcache-0.4.1 pydantic-2.11.10 pydantic-core-2.33.2 python-dotenv-1.2.1 sqlalchemy-2.0.44 typing-extensions-4.15.0 typing-inspection-0.4.2 yarl-1.22.0
-WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
-
-[notice] A new release of pip is available: 23.0.1 -> 25.3
-[notice] To update, run: pip install --upgrade pip
- ---> Removed intermediate container 6a6ba7854758
- ---> 82c2c1630c75
-Step 5/7 : COPY ./src .
- ---> de5c02d3b473
-Step 6/7 : COPY info.txt .
- ---> 41bbc37aaf1a
-Step 7/7 : CMD ["python", "main.py"]
- ---> Running in e5ffb14fc33d
- ---> Removed intermediate container e5ffb14fc33d
- ---> d4248251683a
-Successfully built d4248251683a
-Successfully tagged tginvitebot_bot:latest
-Creating tginvitebot_bot_1 ... done
+D:\programming\invitebot>docker-compose logs -f      
+bot-1  | INFO:aiogram.dispatcher:Start polling
+bot-1  | INFO:aiogram.dispatcher:Run polling for bot @modelinginvitebot id=7201972543 - 'InviteTrackerBot'
+bot-1  | INFO:root:--- New Message Received in Group ---
+bot-1  | INFO:root:Chat ID: -1003347038923 (Type: <class 'int'>)
+bot-1  | INFO:root:Config CHAT_ID: -1003347038923 (Type: <class 'str'>)
+bot-1  | INFO:root:Message Thread ID: 4 (Type: <class 'int'>)
+bot-1  | INFO:root:Config SOURCE_TOPIC_ID: 4 (Type: <class 'str'>)
+bot-1  | INFO:root:Config DESTINATION_TOPIC_ID: 2 (Type: <class 'str'>)
+bot-1  | INFO:root:Message matches source topic and is from a user. Attempting to forward...
+bot-1  | INFO:root:Successfully forwarded message 216 to topic 2
+bot-1  | INFO:aiogram.event:Update id=843799930 is handled. Duration 756 ms by bot id=7201972543
